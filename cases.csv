@@ -1,0 +1,168 @@
+case_id,symptom,topology_note,show_outputs,expected_fault,osi_layer,concept_tag,severity
+NET-001,PC1 cannot reach Server1 in VLAN 30.,"PC1 -> Switch -> Router R1 -> Server1 (VLAN 10 and VLAN 30, Router-on-a-stick)","Router# show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     unassigned      YES unset  up                    up
+GigabitEthernet0/0.10  192.168.10.1    YES manual up                    up
+GigabitEthernet0/0.30  192.168.30.1    YES manual administratively down down",Interface GigabitEthernet0/0.30 is administratively down,Layer 1/2,VLAN,HIGH
+NET-002,Host A reports IP conflict error and cannot access the network.,Host A (192.168.1.10) and Host B are on the same VLAN.,"Switch# show ip arp
+Protocol  Address          Age (min)  Hardware Addr   Type   Interface
+Internet  192.168.1.10            0   0000.1111.2222  ARPA   Vlan1
+Internet  192.168.1.10            0   0000.3333.4444  ARPA   Vlan1
+%IP-4-DUPADDR: Duplicate address 192.168.1.10 on Vlan1, sourced by 0000.3333.4444",Duplicate IP address detected for 192.168.1.10,Layer 3,DHCP,HIGH
+NET-003,Users in subnet 192.168.2.0/24 can only reach half of the expected IPs in their subnet.,Host subnet is meant to be a /24.,"Router# show run interface G0/1
+interface GigabitEthernet0/1
+ ip address 192.168.2.1 255.255.255.128",Wrong subnet mask on gateway interface (255.255.255.128 instead of 255.255.255.0),Layer 3,IP,MEDIUM
+NET-004,PC1 can ping other PCs in its subnet but cannot reach the internet.,PC1 IP: 10.0.0.50. Router Gateway IP: 10.0.0.1.,"PC1> ipconfig
+IPv4 Address. . . . . . . . . . . : 10.0.0.50
+Subnet Mask . . . . . . . . . . . : 255.255.255.0
+Default Gateway . . . . . . . . . : 10.0.0.254",Gateway mismatch on client device,Layer 3,Gateway,HIGH
+NET-005,"Switch port status shows up, but traffic for VLAN 20 is dropped.",PC connected to Fa0/5 on Switch.,"Switch# show vlan brief
+1    default                          active    Fa0/1, Fa0/2, Fa0/3, Fa0/4
+10   USERS                            active    
+Switch# show run interface Fa0/5
+interface FastEthernet0/5
+ switchport access vlan 20
+ switchport mode access",Missing VLAN 20 in the VLAN database,Layer 2,VLAN,MEDIUM
+NET-006,Branch router cannot reach Headquarters subnet 10.10.10.0/24.,Branch router connected to ISP.,"Branch# show ip route
+Gateway of last resort is not set
+      192.168.1.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.1.0/24 is directly connected, GigabitEthernet0/0
+L        192.168.1.1/32 is directly connected, GigabitEthernet0/0",Missing route to 10.10.10.0/24,Layer 3,Routing,HIGH
+NET-007,CDP reports Native VLAN mismatch between Switch A and Switch B.,Trunk link between Switch A and B on Gi0/1.,"SwitchA# show cdp neighbors gi0/1 detail
+%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on GigabitEthernet0/1 (1), with SwitchB GigabitEthernet0/1 (99).",Mismatched Native VLAN IDs (1 vs 99),Layer 2,VLAN,MEDIUM
+NET-008,Web server 192.168.1.100 cannot be reached on port 80 from the outside.,Router ACL applied inbound on WAN interface.,"Router# show access-lists
+Extended IP access list 101
+    10 deny tcp any host 192.168.1.100 eq www (15 matches)
+    20 permit ip any any",ACL deny statement blocking HTTP traffic to web server,Layer 4,ACL,HIGH
+NET-009,Internal clients cannot access the internet. Ping to 8.8.8.8 fails.,Router configured for PAT (NAT Overload).,"Router# show run | inc ip nat
+ip nat inside source list 1 interface GigabitEthernet0/0
+interface GigabitEthernet0/0
+ ip nat outside
+interface GigabitEthernet0/1
+ ! Missing ip nat inside",NAT configuration problem: missing 'ip nat inside' on LAN interface,Layer 3,NAT,HIGH
+NET-010,Clients on VLAN 10 do not receive IP addresses.,DHCP server is at 10.0.0.10. Router acting as relay.,"Router# show run interface GigabitEthernet0/0.10
+interface GigabitEthernet0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+ ! Missing ip helper-address",DHCP configuration problem: missing ip helper-address,Layer 7,DHCP,HIGH
+NET-011,Clients can ping 8.8.8.8 but cannot browse to www.cisco.com.,PC IP configuration.,"PC> ipconfig /all
+IPv4 Address. . . . . . . . . . . : 192.168.1.50
+Subnet Mask . . . . . . . . . . . : 255.255.255.0
+Default Gateway . . . . . . . . . : 192.168.1.1
+DNS Servers . . . . . . . . . . . : 0.0.0.0",DNS-related configuration problem: DNS server not set,Layer 7,DNS,HIGH
+NET-012,Wireless clients cannot connect to SSID 'CorpNet'.,WLC configuration.,"WLC> show wlan 1
+WLAN Identifier.................................. 1
+Profile Name..................................... CorpNet
+Network Name (SSID).............................. CorpNet
+Status........................................... Disabled",WLAN profile is administratively disabled,Layer 2,Wireless,HIGH
+NET-013,OSPF neighbor relationship not forming between R1 and R2.,R1 and R2 connected via GigabitEthernet0/0.,"R1# show ip ospf neighbor
+R1# show run router ospf
+router ospf 1
+ network 192.168.12.0 0.0.0.255 area 0
+R2# show run router ospf
+router ospf 1
+ network 192.168.12.0 0.0.0.255 area 1",OSPF area mismatch,Layer 3,Routing,HIGH
+NET-014,PC cannot get IP via DHCP.,DHCP Pool configured on Router.,"Router# show ip dhcp pool
+Pool LAN:
+ Utilization mark (high/low)    : 100 / 0
+ Subnet size (first/next)       : 0 / 0 
+ Total addresses                : 254
+ Leased addresses               : 254
+ Pending event                  : none
+ 1 subnet is currently in the pool :
+ Current index        IP address range                    Leased addresses
+ 192.168.1.254        192.168.1.1      - 192.168.1.254     254",DHCP pool exhausted,Layer 7,DHCP,HIGH
+NET-015,VLANs not propagating between switches via VTP.,Switch A (Server) connected to Switch B (Client).,"SwitchA# show vtp status
+VTP Domain Name                  : CORP
+VTP Operating Mode               : Server
+SwitchB# show vtp status
+VTP Domain Name                  : CORPS
+VTP Operating Mode               : Client",VTP domain name mismatch,Layer 2,VLAN,MEDIUM
+NET-016,SSH connection to router fails.,Router requires SSH access.,"Router# show run | section line vty
+line vty 0 4
+ transport input telnet
+ login local","VTY lines configured for telnet only, missing SSH transport",Layer 7,Security,LOW
+NET-017,EtherChannel not coming up between Switch1 and Switch2.,Po1 connecting Switch1 and Switch2.,"Switch1# show etherchannel summary
+Group  Port-channel  Protocol    Ports
+------+-------------+-----------+-----------------------------------------------
+1      Po1(SD)         LACP      Gi0/1(D) Gi0/2(D)
+Switch2# show run interface gi0/1
+interface GigabitEthernet0/1
+ channel-group 1 mode on",EtherChannel protocol mismatch (LACP vs statically ON),Layer 2,VLAN,HIGH
+NET-018,Traffic from VLAN 10 blocked by access list.,ACL 100 applied inbound on VLAN 10 interface.,"Router# show ip access-lists
+Extended IP access list 100
+    10 deny ip 192.168.10.0 0.0.0.255 any (50 matches)
+    20 permit ip any any",ACL denying all traffic from VLAN 10,Layer 3,ACL,HIGH
+NET-019,BGP peering state stuck in Idle.,R1 (AS 100) peering with R2 (AS 200).,"R1# show ip bgp summary
+Neighbor        V           AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+10.0.0.2        4          200       0       0        1    0    0 00:00:00 Idle
+R1# show run | inc neighbor 10.0.0.2
+ neighbor 10.0.0.2 remote-as 300",BGP remote-AS misconfigured (300 instead of 200),Layer 3,Routing,HIGH
+NET-020,"Port-security violation triggered, port error-disabled.",PC connected to Fa0/1.,"Switch# show interfaces status err-disabled
+Port      Name               Status       Reason               Err-disabled Vlans
+Fa0/1                        err-disabled psecure-violation
+Switch# show port-security interface fa0/1
+Port Security              : Enabled
+Port Status                : Secure-down
+Violation Mode             : Shutdown
+Maximum MAC Addresses      : 1
+Total MAC Addresses        : 2",Port-security violation due to multiple MACs,Layer 2,Security,HIGH
+NET-021,HSRP state flapping between Active and Standby.,R1 and R2 configured for HSRP group 1.,"R1# show standby
+GigabitEthernet0/0 - Group 1
+  State is Active
+  Virtual IP address is 192.168.1.254
+  Active virtual MAC address is 0000.0c07.ac01
+  Hello time 3 sec, hold time 9 sec
+  Preemption enabled","Missing evidence to fully diagnose flapping, possibly mismatched timers or Layer 2 loop.",Layer 3,Routing,MEDIUM
+NET-022,Cannot ping directly connected router interface.,R1 connected to R2 via serial.,"R1# show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+Serial0/0/0            10.1.1.1        YES manual up                    down","Line protocol down, possible clock rate missing or encapsulation mismatch",Layer 2,Routing,HIGH
+NET-023,NAT overload not translating addresses.,NAT configured on Router.,"Router# show ip nat statistics
+Total active translations: 0 (0 static, 0 dynamic; 0 extended)
+Router# show access-lists
+Standard IP access list 1
+    10 deny 192.168.1.0 0.0.0.255
+    20 permit any",NAT ACL denying internal subnet,Layer 3,NAT,HIGH
+NET-024,Trunk port not carrying VLAN 20.,Gi0/1 is a trunk to another switch.,"Switch# show interfaces trunk
+Port        Mode             Encapsulation  Status        Native vlan
+Gi0/1       on               802.1q         trunking      1
+Port        Vlans allowed on trunk
+Gi0/1       1-19,21-1005",VLAN 20 is not allowed on the trunk,Layer 2,VLAN,HIGH
+NET-025,"Device has correct IP and Gateway, but cannot resolve hostnames.",Router is providing DHCP.,"Router# show run | section dhcp
+ip dhcp pool LAN
+ network 192.168.1.0 255.255.255.0
+ default-router 192.168.1.1
+ ! missing dns-server",DNS-related configuration problem: Missing DNS server in DHCP pool,Layer 7,DNS,MEDIUM
+NET-026,Static route not appearing in routing table.,Static route added for 172.16.0.0/16.,"Router# show run | inc ip route
+ip route 172.16.0.0 255.255.0.0 10.0.0.2
+Router# show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/1     10.0.0.1        YES manual down                  down","Next-hop interface is down, preventing static route installation",Layer 3,Routing,HIGH
+NET-027,IPv6 ping fails.,IPv6 configured on Router.,"Router# show ipv6 interface brief
+GigabitEthernet0/0     [up/up]
+    unassigned
+Router# show run interface g0/0
+interface GigabitEthernet0/0
+ ipv6 address 2001:DB8:1::1/64
+ ! missing ipv6 enable",IPv6 address configured but IPv6 routing might be disabled or interface not active for IPv6,Layer 3,Routing,HIGH
+NET-028,Spanning-tree blocking port unexpectedly.,Switch A connected to Switch B.,"Switch# show spanning-tree
+VLAN0001
+  Spanning tree enabled protocol ieee
+  Root ID    Priority    32769
+             Address     0001.0001.0001
+             Cost        19
+             Port        1 (FastEthernet0/1)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+Interface        Role Sts Cost      Prio.Nbr Type
+---------------- ---- --- --------- -------- --------------------------------
+Fa0/1            Root FWD 19        128.1    P2p 
+Fa0/2            Altn BLK 19        128.2    P2p",Spanning tree normal operation blocking redundant link,Layer 2,VLAN,LOW
+NET-029,Cannot manage switch via HTTP.,Web server enabled on switch.,"Switch# show run | inc http
+no ip http server
+no ip http secure-server",HTTP/HTTPS server is disabled,Layer 7,Security,LOW
+NET-030,SNMP polling fails from NMS.,SNMP v2c configured.,"Router# show run | inc snmp
+snmp-server community public RO 10
+Router# show access-lists 10
+Standard IP access list 10
+    10 permit 192.168.100.0, wildcard bits 0.0.0.255",ACL 10 may not permit NMS IP address,Layer 7,Security,MEDIUM

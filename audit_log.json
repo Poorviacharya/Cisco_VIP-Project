@@ -1,0 +1,104 @@
+[
+  {
+    "timestamp": "2026-08-28T19:23:59.303975",
+    "case_id": "NET-002",
+    "ai_diagnosis": {
+      "root_cause": "Duplicate IP address on the network.",
+      "osi_layer": "Layer 3",
+      "confidence": 0.9,
+      "evidence": [
+        "%IP-4-DUPADDR: Duplicate address 192.168.1.10"
+      ],
+      "next_command": "show ip arp",
+      "fix_steps": [
+        "configure terminal",
+        "interface Vlan1",
+        "shutdown"
+      ]
+    },
+    "decision": "Edit",
+    "edited_fix": "configure terminal\ninterface Vlan1\nip address dhcp",
+    "reason": "Shutting down Vlan1 is too disruptive. Need to find the source or change IP."
+  },
+  {
+    "timestamp": "2026-08-28T19:23:59.303975",
+    "case_id": "NET-004",
+    "ai_diagnosis": {
+      "root_cause": "Gateway mismatch on client PC.",
+      "osi_layer": "Layer 3",
+      "confidence": 0.85,
+      "evidence": [
+        "Default Gateway . . . . . . . . . : 10.0.0.254"
+      ],
+      "next_command": "ipconfig /all",
+      "fix_steps": [
+        "ipconfig /release",
+        "ipconfig /renew"
+      ]
+    },
+    "decision": "Edit",
+    "edited_fix": "Change static IP settings on PC adapter to Gateway 10.0.0.1",
+    "reason": "PC was statically configured, DHCP renew will not work."
+  },
+  {
+    "timestamp": "2026-08-28T19:23:59.303975",
+    "case_id": "NET-006",
+    "ai_diagnosis": {
+      "root_cause": "Missing route to 10.10.10.0/24.",
+      "osi_layer": "Layer 3",
+      "confidence": 0.95,
+      "evidence": [
+        "Gateway of last resort is not set"
+      ],
+      "next_command": "show ip route",
+      "fix_steps": [
+        "configure terminal",
+        "ip route 10.10.10.0 255.255.255.0 192.168.1.1"
+      ]
+    },
+    "decision": "Reject",
+    "edited_fix": null,
+    "reason": "Next-hop 192.168.1.1 is the local router, need the ISP next hop."
+  },
+  {
+    "timestamp": "2026-08-28T19:23:59.303975",
+    "case_id": "NET-008",
+    "ai_diagnosis": {
+      "root_cause": "ACL denying HTTP traffic.",
+      "osi_layer": "Layer 4",
+      "confidence": 0.9,
+      "evidence": [
+        "10 deny tcp any host 192.168.1.100 eq www (15 matches)"
+      ],
+      "next_command": "show access-lists",
+      "fix_steps": [
+        "configure terminal",
+        "no access-list 101"
+      ]
+    },
+    "decision": "Edit",
+    "edited_fix": "configure terminal\nip access-list extended 101\nno 10\n10 permit tcp any host 192.168.1.100 eq www",
+    "reason": "Deleting the entire ACL is a security risk. Modified sequence 10 to permit instead."
+  },
+  {
+    "timestamp": "2026-08-28T19:23:59.303975",
+    "case_id": "NET-016",
+    "ai_diagnosis": {
+      "root_cause": "VTY lines missing SSH.",
+      "osi_layer": "Layer 7",
+      "confidence": 0.9,
+      "evidence": [
+        "transport input telnet"
+      ],
+      "next_command": "show run | section line vty",
+      "fix_steps": [
+        "configure terminal",
+        "line vty 0 4",
+        "transport input all"
+      ]
+    },
+    "decision": "Edit",
+    "edited_fix": "configure terminal\nline vty 0 4\ntransport input ssh",
+    "reason": "Transport input all allows telnet which is insecure. Restricted to ssh only."
+  }
+]
